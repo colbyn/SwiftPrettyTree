@@ -175,6 +175,11 @@ extension UUID: ToPrettyTree {
         PrettyTree.value(uuidString.debugDescription)
     }
 }
+extension Date: ToPrettyTree {
+    public var asPrettyTree: PrettyTree {
+        PrettyTree.value(self.debugDescription)
+    }
+}
 extension PrettyTree {
     fileprivate func format(formater: Formatter) -> String {
         switch self {
