@@ -170,6 +170,11 @@ extension Optional: ToPrettyTree where Wrapped: ToPrettyTree {
         }
     }
 }
+extension UUID: ToPrettyTree {
+    public var asPrettyTree: PrettyTree {
+        PrettyTree.value(uuidString.debugDescription)
+    }
+}
 extension PrettyTree {
     fileprivate func format(formater: Formatter) -> String {
         switch self {
