@@ -22,6 +22,17 @@ dependencies: [
 ]
 ```
 
+### Latest version
+
+```swift
+dependencies: [
+    .package(
+        url: "https://github.com/colbyn/SwiftPrettyTree.git",
+        .upToNextMajor(from: "0.5.0")
+    )
+]
+```
+
 ## Usage
 
 ### Basic Example
