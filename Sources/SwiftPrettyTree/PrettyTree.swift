@@ -205,11 +205,13 @@ extension PrettyTree {
             }
             return ""
         case .value(let x):
-            let value: String = parentsLabel.isEmpty ? x : "\(parentsLabel)\(pathSeparator) \(x)"
+            let pathEnd = pathSeparator.trimmingCharacters(in: .whitespacesAndNewlines)
+            let value: String = parentsLabel.isEmpty ? x : "\(parentsLabel)\(pathEnd)\(x)"
             return formater.leaf(value: value, options: options)
         case .string(let string):
+            let pathEnd = pathSeparator.trimmingCharacters(in: .whitespacesAndNewlines)
             let string = string.truncated(limit: 80, position: .middle).debugDescription
-            let value: String = parentsLabel.isEmpty ? string : "\(parentsLabel)\(pathSeparator) \(string)"
+            let value: String = parentsLabel.isEmpty ? string : "\(parentsLabel)\(pathEnd)\(string)"
             return formater.leaf(value: value, options: options)
         case .branch(let branch):
             let label: String = parentsLabel.isEmpty ? branch.label : "\(parentsLabel)\(pathSeparator)\(branch.label)"
