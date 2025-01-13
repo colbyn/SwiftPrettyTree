@@ -204,12 +204,12 @@ extension PrettyTree {
                 return formater.leaf(value: parentsLabel, options: options)
             }
             return ""
-        case .value(let x):
-            let pathEnd = pathSeparator.trimmingCharacters(in: .whitespacesAndNewlines)
-            let value: String = parentsLabel.isEmpty ? x : "\(parentsLabel)\(pathEnd)\(x)"
+        case .value(let value):
+            let pathEnd = pathSeparator
+            let value: String = parentsLabel.isEmpty ? value : "\(parentsLabel)\(pathEnd)\(value)"
             return formater.leaf(value: value, options: options)
         case .string(let string):
-            let pathEnd = pathSeparator.trimmingCharacters(in: .whitespacesAndNewlines)
+            let pathEnd = pathSeparator
             let string = string.truncated(limit: 80, position: .middle).debugDescription
             let value: String = parentsLabel.isEmpty ? string : "\(parentsLabel)\(pathEnd)\(string)"
             return formater.leaf(value: value, options: options)
