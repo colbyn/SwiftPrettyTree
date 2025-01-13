@@ -195,12 +195,19 @@ extension PrettyTree {
         case .empty: return ""
         case .value(let x): return formater.leaf(value: x, options: options)
         case .string(let x): return formater.leaf(value: x.truncated(limit: 50, position: .middle).debugDescription, options: options)
-        case .branch(let branch):
-            if options.compactMode && branch.children.count == 1, let child = branch.children.first!.asBranch {
+        case .branch(let branch) where options.compactMode && branch.children.count == 1:
+            let child = branch.children.first!
+            if let child = child.asBranch {
                 let label = "\(branch.label) ▷ \(child.label)"
-                let branch = Branch(label: label, children: child.children)
-                return formater.branch(label: branch.label, children: branch.children, options: options)
+                return formater.branch(label: label, children: child.children, options: options)
             }
+            if let child = child.asString {
+                let child = child.truncated(limit: 50, position: .middle).debugDescription
+                let label = "\(branch.label): \(child)"
+                return formater.leaf(value: label, options: options)
+            }
+            return formater.branch(label: branch.label, children: branch.children, options: options)
+        case .branch(let branch):
             return formater.branch(label: branch.label, children: branch.children, options: options)
         case .fragment(_): fatalError("TODO")
         }
@@ -210,10 +217,28 @@ extension PrettyTree {
     }
     public var asBranch: Branch? {
         switch self {
-        case .branch(let branch): return branch
+        case .branch(let x): return x
         case .empty: return nil
         case .string(_): return nil
         case .value(_): return nil
+        case .fragment(_): return nil
+        }
+    }
+    public var asString: String? {
+        switch self {
+        case .branch(_): return nil
+        case .empty: return nil
+        case .string(let x): return x
+        case .value(_): return nil
+        case .fragment(_): return nil
+        }
+    }
+    public var asValue: String? {
+        switch self {
+        case .branch(_): return nil
+        case .empty: return nil
+        case .string(_): return nil
+        case .value(let x): return x
         case .fragment(_): return nil
         }
     }
