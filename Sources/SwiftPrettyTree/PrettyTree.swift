@@ -130,9 +130,13 @@ extension PrettyTree {
     }
     public struct FormatterOptions {
         fileprivate let compactMode: Bool
-        public static let `default`: FormatterOptions = .init(compactMode: false)
+        fileprivate let compactModePathSeparator: String?
+        public static let `default`: FormatterOptions = .init(compactMode: false, compactModePathSeparator: nil)
         public func with(compactMode: Bool) -> FormatterOptions {
-            return .init(compactMode: compactMode)
+            return .init(compactMode: compactMode, compactModePathSeparator: compactModePathSeparator)
+        }
+        public func with(compactModePathSeparator: String?) -> FormatterOptions {
+            return .init(compactMode: compactMode, compactModePathSeparator: compactModePathSeparator)
         }
     }
 }
@@ -192,7 +196,7 @@ extension Date: ToPrettyTree {
 extension PrettyTree {
     fileprivate func format(formater: Formatter, options: FormatterOptions) -> String {
         let (parents, node) = self.abbreviatablePath(parents: [])
-        let pathSeparator = " ▷ "
+        let pathSeparator = options.compactModePathSeparator ?? " → "
         let parentsLabel = parents.joined(separator: pathSeparator)
         switch self {
         case .empty:
