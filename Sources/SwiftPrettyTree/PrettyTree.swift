@@ -14,8 +14,8 @@ public enum PrettyTree {
     case branch(Branch)
     case fragment([PrettyTree])
     public struct Branch: ToPrettyTree {
-        let label: String
-        let children: [PrettyTree]
+        public let label: String
+        public let children: [PrettyTree]
         public var asPrettyTree: PrettyTree {
             PrettyTree.branch(self)
         }
@@ -34,7 +34,7 @@ public enum PrettyTree {
         case .value(let x):
             self = Self.value("\(key): \(x)")
         case .string(let x):
-            self = Self.value("\(key): \(x.truncate(limit: 50).debugDescription)")
+            self = Self.value("\(key): \(x.truncated(limit: 80, position: .middle).debugDescription)")
         case let x:
             self = Self(label: key, children: [x])
         }
@@ -44,86 +44,95 @@ public enum PrettyTree {
     }
 }
 
-public struct Formatter {
-    fileprivate let columns: [ Column ]
-    fileprivate init(columns: [Column] = []) {
-        self.columns = columns
-    }
-    fileprivate static var root: Self = Self(columns: [])
-    fileprivate func downThenRight() -> Self {
-        let columns = self.columns
-            .map {
-                switch $0 {
-                case .downAndRight: return Formatter.Column.verticalBar
-                case .downThenRight: return Formatter.Column.empty
-                default: return $0
-                }
-            }
-            .with(append: Formatter.Column.downThenRight)
-        return Formatter(columns: columns)
-    }
-    fileprivate func downAndRight() -> Self {
-        let columns = self.columns
-            .map {
-                switch $0 {
-                case .downAndRight: return Formatter.Column.verticalBar
-                case .downThenRight: return Formatter.Column.empty
-                default: return $0
-                }
-            }
-            .with(append: Formatter.Column.downAndRight)
-        return Formatter(columns: columns)
-    }
-    fileprivate func withColumn(column: Formatter.Column) -> Self {
-        let columns = self.columns.with(append: column)
-        return Formatter(columns: columns)
-    }
-    fileprivate func leading() -> String {
-        let thinSpace = "\u{2009}"
-        let leading = self.columns
-            .map { $0.string }
-            .joined(separator: "  ")
-        let sep = self.columns.isEmpty ? "" : "╼\(thinSpace)"
-        return "\(leading)\(sep)"
-    }
-    fileprivate func leaf(value: String) -> String {
-        let leading = self.leading()
-        return "\(leading)\(value)"
-    }
-    fileprivate func branch(label: String, children: [PrettyTree]) -> String {
-        let label = self.leaf(value: label)
-        if children.isEmpty {
-            return label
+extension PrettyTree {
+    public struct Formatter {
+        fileprivate let columns: [ Column ]
+        fileprivate init(columns: [Column] = []) {
+            self.columns = columns
         }
-        let children = children
-            .enumerated()
-            .map { (ix, child) in
-                let is_last = ix == children.count - 1;
-                if is_last {
-                    return child.format(formater: self.downThenRight())
+        fileprivate static var root: Self = Self(columns: [])
+        fileprivate func downThenRight() -> Self {
+            let columns = self.columns
+                .map {
+                    switch $0 {
+                    case .downAndRight: return Formatter.Column.verticalBar
+                    case .downThenRight: return Formatter.Column.empty
+                    default: return $0
+                    }
                 }
-                return child.format(formater: self.downAndRight())
+                .with(append: Formatter.Column.downThenRight)
+            return Formatter(columns: columns)
+        }
+        fileprivate func downAndRight() -> Self {
+            let columns = self.columns
+                .map {
+                    switch $0 {
+                    case .downAndRight: return Formatter.Column.verticalBar
+                    case .downThenRight: return Formatter.Column.empty
+                    default: return $0
+                    }
+                }
+                .with(append: Formatter.Column.downAndRight)
+            return Formatter(columns: columns)
+        }
+        fileprivate func withColumn(column: Formatter.Column) -> Self {
+            let columns = self.columns.with(append: column)
+            return Formatter(columns: columns)
+        }
+        fileprivate func leading() -> String {
+            let thinSpace = "\u{2009}"
+            let leading = self.columns
+                .map { $0.string }
+                .joined(separator: "  ")
+            let sep = self.columns.isEmpty ? "" : "╼\(thinSpace)"
+            return "\(leading)\(sep)"
+        }
+        fileprivate func leaf(value: String, options: FormatterOptions) -> String {
+            let leading = self.leading()
+            return "\(leading)\(value)"
+        }
+        fileprivate func branch(label: String, children: [PrettyTree], options: FormatterOptions) -> String {
+            let label = self.leaf(value: label, options: options)
+            if children.isEmpty {
+                return label
             }
-            .joined(separator: "\n")
-        return "\(label)\n\(children)"
-    }
-    fileprivate func fragment(list: [PrettyTree]) -> String {
-        fatalError("TODO")
-    }
-    fileprivate enum Column {
-        case empty
-        case upThenRight
-        case verticalBar
-        case downAndRight
-        case downThenRight
-        public var string: String {
-            switch self {
-            case .empty: return " "
-            case .upThenRight: return "╭"
-            case .verticalBar: return "│"
-            case .downAndRight: return "├"
-            case .downThenRight: return "╰"
+            let children = children
+                .enumerated()
+                .map { (ix, child) in
+                    let is_last = ix == children.count - 1;
+                    if is_last {
+                        return child.format(formater: self.downThenRight(), options: options)
+                    }
+                    return child.format(formater: self.downAndRight(), options: options)
+                }
+                .joined(separator: "\n")
+            return "\(label)\n\(children)"
+        }
+        fileprivate func fragment(list: [PrettyTree]) -> String {
+            fatalError("TODO")
+        }
+        fileprivate enum Column {
+            case empty
+            case upThenRight
+            case verticalBar
+            case downAndRight
+            case downThenRight
+            public var string: String {
+                switch self {
+                case .empty: return " "
+                case .upThenRight: return "╭"
+                case .verticalBar: return "│"
+                case .downAndRight: return "├"
+                case .downThenRight: return "╰"
+                }
             }
+        }
+    }
+    public struct FormatterOptions {
+        fileprivate let compactMode: Bool
+        public static let `default`: FormatterOptions = .init(compactMode: false)
+        public func with(compactMode: Bool) -> FormatterOptions {
+            return .init(compactMode: compactMode)
         }
     }
 }
@@ -181,17 +190,31 @@ extension Date: ToPrettyTree {
     }
 }
 extension PrettyTree {
-    fileprivate func format(formater: Formatter) -> String {
+    fileprivate func format(formater: Formatter, options: FormatterOptions) -> String {
         switch self {
         case .empty: return ""
-        case .value(let x): return formater.leaf(value: x)
-        case .string(let x): return formater.leaf(value: x.truncated(limit: 50, position: .middle).debugDescription)
-        case .branch(let branch): return formater.branch(label: branch.label, children: branch.children)
-        case .fragment(_):
-            fatalError("TODO")
+        case .value(let x): return formater.leaf(value: x, options: options)
+        case .string(let x): return formater.leaf(value: x.truncated(limit: 50, position: .middle).debugDescription, options: options)
+        case .branch(let branch):
+            if options.compactMode && branch.children.count == 1, let child = branch.children.first!.asBranch {
+                let label = "\(branch.label) ▷ \(child.label)"
+                let branch = Branch(label: label, children: child.children)
+                return formater.branch(label: branch.label, children: branch.children, options: options)
+            }
+            return formater.branch(label: branch.label, children: branch.children, options: options)
+        case .fragment(_): fatalError("TODO")
         }
     }
-    public func format() -> String {
-        self.format(formater: .root)
+    public func format(options: FormatterOptions = .default) -> String {
+        self.format(formater: .root, options: options)
+    }
+    public var asBranch: Branch? {
+        switch self {
+        case .branch(let branch): return branch
+        case .empty: return nil
+        case .string(_): return nil
+        case .value(_): return nil
+        case .fragment(_): return nil
+        }
     }
 }
