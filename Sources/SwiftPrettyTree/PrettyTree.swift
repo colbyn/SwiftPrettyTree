@@ -191,24 +191,25 @@ extension Date: ToPrettyTree {
 }
 extension PrettyTree {
     fileprivate func format(formater: Formatter, options: FormatterOptions) -> String {
+        let (parents, node) = self.abbreviatablePath(parents: [])
+        let pathSeparator = " ▷ "
+        let parentsLabel = parents.joined(separator: pathSeparator)
         switch self {
-        case .empty: return ""
-        case .value(let x): return formater.leaf(value: x, options: options)
-        case .string(let x): return formater.leaf(value: x.truncated(limit: 50, position: .middle).debugDescription, options: options)
-        case .branch(let branch) where options.compactMode && branch.children.count == 1:
-            let child = branch.children.first!
-            if let child = child.asBranch {
-                let label = "\(branch.label) ▷ \(child.label)"
-                return formater.branch(label: label, children: child.children, options: options)
+        case .empty:
+            if !parents.isEmpty {
+                return formater.leaf(value: parentsLabel, options: options)
             }
-            if let child = child.asString {
-                let child = child.truncated(limit: 50, position: .middle).debugDescription
-                let label = "\(branch.label): \(child)"
-                return formater.leaf(value: label, options: options)
-            }
-            return formater.branch(label: branch.label, children: branch.children, options: options)
+            return ""
+        case .value(let x):
+            let value: String = parentsLabel.isEmpty ? x : "\(parentsLabel) \(pathSeparator) \(x)"
+            return formater.leaf(value: value, options: options)
+        case .string(let string):
+            let string = string.truncated(limit: 80, position: .middle).debugDescription
+            let value: String = parentsLabel.isEmpty ? string : "\(parentsLabel) \(pathSeparator) \(string)"
+            return formater.leaf(value: value, options: options)
         case .branch(let branch):
-            return formater.branch(label: branch.label, children: branch.children, options: options)
+            let label: String = parentsLabel.isEmpty ? branch.label : "\(parentsLabel) \(pathSeparator) \(branch.label)"
+            return formater.branch(label: label, children: branch.children, options: options)
         case .fragment(_): fatalError("TODO")
         }
     }
@@ -243,3 +244,33 @@ extension PrettyTree {
         }
     }
 }
+
+// MARK: - INTERNAL HELPERS -
+
+extension PrettyTree {
+    fileprivate func abbreviatablePath(parents: [String]) -> ([String], PrettyTree) {
+        switch self {
+        case .branch(let branch):
+            if branch.children.count == 1 {
+                let child = branch.children.first!
+                let parents = parents.with(append: branch.label)
+                return child.abbreviatablePath(parents: parents)
+            }
+            return (parents, .branch(branch))
+        case .empty: return (parents, self)
+        case .string(_): return (parents, self)
+        case .value(_): return (parents, self)
+        case .fragment(_): return (parents, self)
+        }
+    }
+}
+//extension PrettyTree.Branch {
+//    fileprivate func abbreviatablePath(parents: [String]) -> ([String], PrettyTree) {
+//        if children.count == 1 {
+//            let child = self.children.first!
+//            let parents = parents.with(append: label)
+//            return child.abbreviatablePath(parents: parents)
+//        }
+//        return (parents, .branch(self))
+//    }
+//}
