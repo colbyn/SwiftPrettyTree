@@ -198,7 +198,7 @@ extension PrettyTree {
         let (parents, node) = self.abbreviatablePath(parents: [])
         let pathSeparator = options.compactModePathSeparator ?? " → "
         let parentsLabel = parents.joined(separator: pathSeparator)
-        switch self {
+        switch node {
         case .empty:
             if !parents.isEmpty {
                 return formater.leaf(value: parentsLabel, options: options)
